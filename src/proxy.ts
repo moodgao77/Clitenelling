@@ -4,9 +4,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 /**
  * Refreshes the Supabase session on every request and redirects signed-out
  * visitors to /login. This is the front door: no authenticated screen renders
- * without a valid session.
+ * without a valid session. (Next 16 "proxy" convention, formerly "middleware".)
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
