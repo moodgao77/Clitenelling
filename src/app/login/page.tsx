@@ -2,19 +2,22 @@
 
 import { useActionState } from 'react';
 import { signIn } from './actions';
+import Lotus from '@/components/Lotus';
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, undefined);
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Clienteling</h1>
-        <p className="mt-1 text-sm text-neutral-500">Sign in to your client book.</p>
+      <div className="mb-10 text-center">
+        <Lotus className="mx-auto mb-4 w-14" />
+        <p className="eyebrow">Marushika</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-heading">Clienteling</h1>
+        <p className="mt-1 text-sm text-muted">Sign in to your client book.</p>
       </div>
 
       <form action={formAction} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Email</span>
           <input
             name="email"
@@ -22,23 +25,23 @@ export default function LoginPage() {
             autoComplete="email"
             inputMode="email"
             required
-            className="h-12 rounded-xl border border-neutral-300 px-4 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
+            className="h-12 rounded-xl border border-line bg-surface px-4 text-base text-ink outline-none transition-colors focus:border-gold"
           />
         </label>
 
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Password</span>
           <input
             name="password"
             type="password"
             autoComplete="current-password"
             required
-            className="h-12 rounded-xl border border-neutral-300 px-4 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
+            className="h-12 rounded-xl border border-line bg-surface px-4 text-base text-ink outline-none transition-colors focus:border-gold"
           />
         </label>
 
         {state?.error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {state.error}
           </p>
         )}
@@ -46,7 +49,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={pending}
-          className="mt-2 h-12 rounded-xl bg-neutral-900 text-base font-medium text-white disabled:opacity-60 dark:bg-white dark:text-neutral-900"
+          className="mt-2 h-12 rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity disabled:opacity-60"
         >
           {pending ? 'Signing in…' : 'Sign in'}
         </button>

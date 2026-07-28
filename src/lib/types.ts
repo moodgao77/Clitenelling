@@ -19,12 +19,12 @@ export const STAGES: Stage[] = [
   'purchased',
 ];
 
-export const STAGE_META: Record<Stage, { label: string; classes: string }> = {
-  uncontacted: { label: 'Uncontacted', classes: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300' },
-  contacted: { label: 'Contacted', classes: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
-  visit_booked: { label: 'Visit booked', classes: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
-  visited: { label: 'Visited', classes: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300' },
-  purchased: { label: 'Purchased', classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+export const STAGE_META: Record<Stage, { label: string }> = {
+  uncontacted: { label: 'Uncontacted' },
+  contacted: { label: 'Contacted' },
+  visit_booked: { label: 'Visit booked' },
+  visited: { label: 'Visited' },
+  purchased: { label: 'Purchased' },
 };
 
 export const SOURCE_LABEL: Record<Source, string> = {
