@@ -5,6 +5,16 @@ import { usePathname } from 'next/navigation';
 
 const TABS = [
   {
+    href: '/',
+    label: 'Today',
+    match: (p: string) => p === '/',
+    icon: (
+      <>
+        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+      </>
+    ),
+  },
+  {
     href: '/people',
     label: 'Clients',
     match: (p: string) => p === '/people' || (p.startsWith('/people/') && p !== '/people/new'),
@@ -20,33 +30,40 @@ const TABS = [
   },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ dueCount = 0 }: { dueCount?: number }) {
   const pathname = usePathname();
   if (pathname === '/login') return null;
 
   return (
-    <nav className="sticky bottom-0 z-10 grid grid-cols-2 border-t border-line bg-surface/90 backdrop-blur">
+    <nav className="sticky bottom-0 z-10 grid grid-cols-3 border-t border-line bg-surface/90 backdrop-blur">
       {TABS.map((tab) => {
         const active = tab.match(pathname);
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors ${
+            className={`relative flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors ${
               active ? 'text-heading' : 'text-muted'
             }`}
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {tab.icon}
-            </svg>
+            <span className="relative">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {tab.icon}
+              </svg>
+              {tab.href === '/' && dueCount > 0 && (
+                <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-accent-fg">
+                  {dueCount > 99 ? '99+' : dueCount}
+                </span>
+              )}
+            </span>
             {tab.label}
           </Link>
         );

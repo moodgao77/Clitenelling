@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Raleway } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import { getDueCount } from "@/lib/today";
 
 // Raleway is Marushika's approved marketing/UI typeface. Self-hosted by Next.
 const raleway = Raleway({
@@ -23,16 +24,17 @@ export const viewport = {
   themeColor: "#4a0e33",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const dueCount = await getDueCount();
   return (
     <html lang="en" className={`${raleway.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-bg text-ink">
         <div className="flex-1">{children}</div>
-        <BottomNav />
+        <BottomNav dueCount={dueCount} />
       </body>
     </html>
   );
