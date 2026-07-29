@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { getSessionProfile } from '@/lib/auth';
-import { computeFunnel, type Period, type FunnelCounts } from '@/lib/reporting';
+import { computeFunnel, todayDubaiISO, type Period, type FunnelCounts } from '@/lib/reporting';
 import Funnel from '@/components/Funnel';
 import Lotus from '@/components/Lotus';
+import DateFilter from '@/components/DateFilter';
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: 'day', label: 'Day' },
@@ -16,7 +17,7 @@ const overall = (c: FunnelCounts) =>
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; date?: string }>;
 }) {
   const me = await getSessionProfile();
   if (!me || me.role !== 'manager') {
@@ -32,9 +33,12 @@ export default async function ReportsPage({
     );
   }
 
-  const { period: raw } = await searchParams;
+  const { period: raw, date: rawDate } = await searchParams;
   const period: Period = raw === 'day' || raw === 'week' || raw === 'month' ? raw : 'month';
-  const { team, associates, label } = await computeFunnel(period);
+  const today = todayDubaiISO();
+  const date =
+    rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) && rawDate <= today ? rawDate : today;
+  const { team, associates, label } = await computeFunnel(period, date);
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-10">
@@ -51,11 +55,11 @@ export default async function ReportsPage({
         matters more than raw totals — it shows where a client relationship needs help.
       </p>
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-4 flex gap-2">
         {PERIODS.map((p) => (
           <Link
             key={p.key}
-            href={`/reports?period=${p.key}`}
+            href={`/reports?period=${p.key}&date=${date}`}
             className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
               period === p.key
                 ? 'border-accent bg-accent text-accent-fg'
@@ -65,6 +69,10 @@ export default async function ReportsPage({
             {p.label}
           </Link>
         ))}
+      </div>
+
+      <div className="mb-6">
+        <DateFilter period={period} date={date} max={today} />
       </div>
 
       <section className="mb-8 rounded-2xl border border-line bg-surface p-5">

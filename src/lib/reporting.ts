@@ -14,29 +14,66 @@ export const FUNNEL_STAGES: { stage: Stage; label: string }[] = [
   { stage: 'purchased', label: 'Purchased' },
 ];
 
-export function periodBounds(period: Period) {
+/** Today's date in Dubai as 'YYYY-MM-DD' — the default anchor and the max
+ *  selectable date (no future). */
+export function todayDubaiISO(): string {
   const d = new Date(Date.now() + DUBAI_OFFSET_MS);
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth();
-  const day = d.getUTCDate();
-  const startOfToday = Date.UTC(y, m, day) - DUBAI_OFFSET_MS;
-  const endOfToday = startOfToday + 86_400_000;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    d.getUTCDate(),
+  ).padStart(2, '0')}`;
+}
+
+const fmtDay = (ms: number) =>
+  new Date(ms).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Dubai',
+  });
+
+/**
+ * Funnel window for a period, anchored to a chosen date (Dubai local).
+ * day = that date; week = the 7 days ending on it; month = its calendar month.
+ * anchorDate defaults to today.
+ */
+export function periodBounds(period: Period, anchorDate?: string) {
+  let y: number;
+  let m: number;
+  let day: number;
+  if (anchorDate && /^\d{4}-\d{2}-\d{2}$/.test(anchorDate)) {
+    const [yy, mm, dd] = anchorDate.split('-').map(Number);
+    y = yy;
+    m = mm - 1;
+    day = dd;
+  } else {
+    const d = new Date(Date.now() + DUBAI_OFFSET_MS);
+    y = d.getUTCFullYear();
+    m = d.getUTCMonth();
+    day = d.getUTCDate();
+  }
+  const startOfDay = Date.UTC(y, m, day) - DUBAI_OFFSET_MS;
+  const endOfDay = startOfDay + 86_400_000;
 
   let startUTC: number;
   let endUTC: number;
   let label: string;
   if (period === 'day') {
-    startUTC = startOfToday;
-    endUTC = endOfToday;
-    label = 'Today';
+    startUTC = startOfDay;
+    endUTC = endOfDay;
+    label = fmtDay(startOfDay);
   } else if (period === 'week') {
-    startUTC = startOfToday - 6 * 86_400_000;
-    endUTC = endOfToday;
-    label = 'Last 7 days';
+    startUTC = startOfDay - 6 * 86_400_000;
+    endUTC = endOfDay;
+    label = `${fmtDay(startUTC)} – ${fmtDay(startOfDay)}`;
   } else {
     startUTC = Date.UTC(y, m, 1) - DUBAI_OFFSET_MS;
     endUTC = Date.UTC(y, m + 1, 1) - DUBAI_OFFSET_MS;
-    label = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    label = new Date(startUTC).toLocaleDateString('en-GB', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'Asia/Dubai',
+    });
   }
   return {
     startISO: new Date(startUTC).toISOString(),
@@ -54,9 +91,9 @@ type HistoryRow = { to_stage: string; person_id: string; people: { owner_id: str
  * team-wide and per associate (attributed to the client's owner). Reads the
  * timestamped stage_history ledger, so the funnel can't be gamed.
  */
-export async function computeFunnel(period: Period) {
+export async function computeFunnel(period: Period, anchorDate?: string) {
   const supabase = await createServerSupabase();
-  const { startISO, endISO, label } = periodBounds(period);
+  const { startISO, endISO, label } = periodBounds(period, anchorDate);
 
   const { data } = await supabase
     .from('stage_history')
