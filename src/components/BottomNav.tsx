@@ -3,40 +3,60 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const TABS = [
+type Tab = {
+  href: string;
+  label: string;
+  match: (p: string) => boolean;
+  icon: React.ReactNode;
+  managerOnly?: boolean;
+};
+
+const TABS: Tab[] = [
   {
     href: '/',
     label: 'Today',
-    match: (p: string) => p === '/',
-    icon: (
-      <>
-        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
-      </>
-    ),
+    match: (p) => p === '/',
+    icon: <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />,
   },
   {
     href: '/people',
     label: 'Clients',
-    match: (p: string) => p === '/people' || (p.startsWith('/people/') && p !== '/people/new'),
-    icon: (
-      <path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87M7 6a4 4 0 1 0 8 0 4 4 0 0 0-8 0Zm-4 15v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-    ),
+    match: (p) => p === '/people' || (p.startsWith('/people/') && p !== '/people/new'),
+    icon: <path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87M7 6a4 4 0 1 0 8 0 4 4 0 0 0-8 0Zm-4 15v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />,
   },
   {
     href: '/people/new',
     label: 'Add',
-    match: (p: string) => p === '/people/new',
+    match: (p) => p === '/people/new',
     icon: <path d="M12 5v14M5 12h14" />,
+  },
+  {
+    href: '/reports',
+    label: 'Funnel',
+    match: (p) => p.startsWith('/reports'),
+    managerOnly: true,
+    icon: <path d="M3 3v18h18M8 16v-5M13 16V8M18 16v-9" />,
   },
 ];
 
-export default function BottomNav({ dueCount = 0 }: { dueCount?: number }) {
+export default function BottomNav({
+  dueCount = 0,
+  isManager = false,
+}: {
+  dueCount?: number;
+  isManager?: boolean;
+}) {
   const pathname = usePathname();
   if (pathname === '/login') return null;
 
+  const tabs = TABS.filter((t) => !t.managerOnly || isManager);
+
   return (
-    <nav className="sticky bottom-0 z-10 grid grid-cols-3 border-t border-line bg-surface/90 backdrop-blur">
-      {TABS.map((tab) => {
+    <nav
+      className="sticky bottom-0 z-10 border-t border-line bg-surface/90 backdrop-blur"
+      style={{ display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}
+    >
+      {tabs.map((tab) => {
         const active = tab.match(pathname);
         return (
           <Link

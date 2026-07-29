@@ -3,6 +3,7 @@ import { Raleway } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import { getDueCount } from "@/lib/today";
+import { getSessionProfile } from "@/lib/auth";
 
 // Raleway is Marushika's approved marketing/UI typeface. Self-hosted by Next.
 const raleway = Raleway({
@@ -29,12 +30,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const dueCount = await getDueCount();
+  const [dueCount, me] = await Promise.all([getDueCount(), getSessionProfile()]);
   return (
     <html lang="en" className={`${raleway.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-bg text-ink">
         <div className="flex-1">{children}</div>
-        <BottomNav dueCount={dueCount} />
+        <BottomNav dueCount={dueCount} isManager={me?.role === "manager"} />
       </body>
     </html>
   );
