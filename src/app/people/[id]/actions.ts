@@ -79,6 +79,38 @@ export async function addActivity(
   refresh(personId);
 }
 
+/**
+ * Fired when the associate taps "Message on WhatsApp". Advances an uncontacted
+ * client to Contacted (timestamped by the DB trigger), records the outreach in
+ * the timeline, and clears due reminders — so the "spoke to" count is a
+ * byproduct of the action, not a separate chore. Does not downgrade a client
+ * already further along the funnel.
+ */
+export async function logWhatsAppContact(personId: string) {
+  const { supabase, user } = await client();
+  const { data: person } = await supabase
+    .from('people')
+    .select('stage')
+    .eq('id', personId)
+    .maybeSingle();
+  if (!person) return;
+
+  if (person.stage === 'uncontacted') {
+    await supabase.from('people').update({ stage: 'contacted' }).eq('id', personId);
+  }
+  await supabase.from('activities').insert({
+    person_id: personId,
+    type: 'note',
+    title: 'Messaged on WhatsApp',
+    body: '',
+    status: 'done',
+    completed_at: new Date().toISOString(),
+    created_by: user?.id ?? null,
+  });
+  await completeDueFollowUps(supabase, personId);
+  refresh(personId);
+}
+
 export async function completeActivity(activityId: string, personId: string) {
   const { supabase } = await client();
   await supabase
