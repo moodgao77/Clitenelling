@@ -30,6 +30,9 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // API routes authorize themselves (cron secret, role checks) — don't redirect.
+  if (request.nextUrl.pathname.startsWith('/api')) return response;
+
   const isLogin = request.nextUrl.pathname.startsWith('/login');
   if (!user && !isLogin) {
     const url = request.nextUrl.clone();
