@@ -15,7 +15,8 @@ const {
   NEXT_PUBLIC_SUPABASE_URL: SB_URL,
   SUPABASE_SERVICE_ROLE_KEY: SB_KEY,
   SHOPIFY_STORE_DOMAIN: DOMAIN,
-  SHOPIFY_ADMIN_TOKEN: TOKEN,
+  SHOPIFY_CLIENT_ID: CLIENT_ID,
+  SHOPIFY_CLIENT_SECRET: CLIENT_SECRET,
   SHOPIFY_API_VERSION: VERSION = '2024-10',
 } = process.env;
 
@@ -23,14 +24,33 @@ if (!SB_URL || !SB_KEY) {
   console.error('Missing Supabase env. Check .env.local.');
   process.exit(1);
 }
-if (!DOMAIN || !TOKEN) {
-  console.error('Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_ADMIN_TOKEN. Check .env.local.');
+if (!DOMAIN || !CLIENT_ID || !CLIENT_SECRET) {
+  console.error('Missing SHOPIFY_STORE_DOMAIN / SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET.');
   process.exit(1);
 }
 
 const db = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 const base = `https://${DOMAIN}/admin/api/${VERSION}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Dev Dashboard apps: exchange Client ID + Secret for a short-lived (24h)
+// Admin API access token via the client-credentials grant. GET only after.
+let TOKEN = null;
+async function getToken() {
+  const res = await fetch(`https://${DOMAIN}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+    }),
+  });
+  const j = await res.json();
+  if (!j.access_token) throw new Error('Token exchange failed: ' + JSON.stringify(j));
+  TOKEN = j.access_token;
+  return j.scope || '(no scopes granted — approve read_customers & read_orders on the app)';
+}
 
 function normalizePhone(raw) {
   const p = parsePhoneNumberFromString((raw ?? '').trim(), 'AE');
@@ -79,7 +99,9 @@ async function fetchOrders(customerId) {
 }
 
 async function main() {
-  console.log(`\nSyncing (READ-ONLY) from ${DOMAIN} …\n`);
+  console.log(`\nSyncing (READ-ONLY) from ${DOMAIN} …`);
+  const scope = await getToken();
+  console.log(`Granted scopes: ${scope}\n`);
   const { data: logRow } = await db
     .from('shopify_sync_log')
     .insert({ status: 'running' })
