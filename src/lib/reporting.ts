@@ -2,8 +2,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import type { Stage } from '@/lib/types';
 
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
-
-export type Period = 'day' | 'week' | 'month';
+const DAY = 86_400_000;
 
 /** The measurable funnel. "Spoke to" = Contacted; "Answered" = Replied. */
 export const FUNNEL_STAGES: { stage: Stage; label: string }[] = [
@@ -14,8 +13,7 @@ export const FUNNEL_STAGES: { stage: Stage; label: string }[] = [
   { stage: 'purchased', label: 'Purchased' },
 ];
 
-/** Today's date in Dubai as 'YYYY-MM-DD' — the default anchor and the max
- *  selectable date (no future). */
+// ---- Dubai-local date helpers (dates are 'YYYY-MM-DD') ----
 export function todayDubaiISO(): string {
   const d = new Date(Date.now() + DUBAI_OFFSET_MS);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(
@@ -23,63 +21,39 @@ export function todayDubaiISO(): string {
   ).padStart(2, '0')}`;
 }
 
-const fmtDay = (ms: number) =>
+export function startOfMonthDubaiISO(): string {
+  return todayDubaiISO().slice(0, 8) + '01';
+}
+
+export function addDaysISO(iso: string, n: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+const dayStartUTC = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return Date.UTC(y, m - 1, d) - DUBAI_OFFSET_MS;
+};
+
+const fmt = (ms: number, withWeekday = false) =>
   new Date(ms).toLocaleDateString('en-GB', {
-    weekday: 'short',
+    weekday: withWeekday ? 'short' : undefined,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     timeZone: 'Asia/Dubai',
   });
 
-/**
- * Funnel window for a period, anchored to a chosen date (Dubai local).
- * day = that date; week = the 7 days ending on it; month = its calendar month.
- * anchorDate defaults to today.
- */
-export function periodBounds(period: Period, anchorDate?: string) {
-  let y: number;
-  let m: number;
-  let day: number;
-  if (anchorDate && /^\d{4}-\d{2}-\d{2}$/.test(anchorDate)) {
-    const [yy, mm, dd] = anchorDate.split('-').map(Number);
-    y = yy;
-    m = mm - 1;
-    day = dd;
-  } else {
-    const d = new Date(Date.now() + DUBAI_OFFSET_MS);
-    y = d.getUTCFullYear();
-    m = d.getUTCMonth();
-    day = d.getUTCDate();
-  }
-  const startOfDay = Date.UTC(y, m, day) - DUBAI_OFFSET_MS;
-  const endOfDay = startOfDay + 86_400_000;
-
-  let startUTC: number;
-  let endUTC: number;
-  let label: string;
-  if (period === 'day') {
-    startUTC = startOfDay;
-    endUTC = endOfDay;
-    label = fmtDay(startOfDay);
-  } else if (period === 'week') {
-    startUTC = startOfDay - 6 * 86_400_000;
-    endUTC = endOfDay;
-    label = `${fmtDay(startUTC)} – ${fmtDay(startOfDay)}`;
-  } else {
-    startUTC = Date.UTC(y, m, 1) - DUBAI_OFFSET_MS;
-    endUTC = Date.UTC(y, m + 1, 1) - DUBAI_OFFSET_MS;
-    label = new Date(startUTC).toLocaleDateString('en-GB', {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'Asia/Dubai',
-    });
-  }
-  return {
-    startISO: new Date(startUTC).toISOString(),
-    endISO: new Date(endUTC).toISOString(),
-    label,
-  };
+/** Inclusive [from, to] range of Dubai days → a query window + a human label. */
+export function rangeBounds(fromDate: string, toDate: string) {
+  let from = fromDate;
+  let to = toDate;
+  if (from > to) [from, to] = [to, from]; // tolerate reversed input
+  const startUTC = dayStartUTC(from);
+  const endUTC = dayStartUTC(to) + DAY; // inclusive of the last day
+  const label = from === to ? fmt(startUTC, true) : `${fmt(startUTC)} – ${fmt(endUTC - DAY)}`;
+  return { startISO: new Date(startUTC).toISOString(), endISO: new Date(endUTC).toISOString(), label };
 }
 
 export type FunnelCounts = Record<string, number>;
@@ -87,13 +61,13 @@ export type AssociateFunnel = { id: string; name: string; counts: FunnelCounts }
 type HistoryRow = { to_stage: string; person_id: string; people: { owner_id: string | null } | null };
 
 /**
- * Counts, per period, how many distinct clients ENTERED each funnel stage —
- * team-wide and per associate (attributed to the client's owner). Reads the
- * timestamped stage_history ledger, so the funnel can't be gamed.
+ * Counts, over a date range, how many distinct clients ENTERED each funnel
+ * stage — team-wide and per associate (attributed to the client's owner).
+ * Reads the timestamped stage_history ledger, so the funnel can't be gamed.
  */
-export async function computeFunnel(period: Period, anchorDate?: string) {
+export async function computeFunnel(fromDate: string, toDate: string) {
   const supabase = await createServerSupabase();
-  const { startISO, endISO, label } = periodBounds(period, anchorDate);
+  const { startISO, endISO, label } = rangeBounds(fromDate, toDate);
 
   const { data } = await supabase
     .from('stage_history')
@@ -109,7 +83,7 @@ export async function computeFunnel(period: Period, anchorDate?: string) {
     const stage = row.to_stage;
     (team[stage] ??= new Set()).add(row.person_id);
     const ownerId = row.people?.owner_id;
-    if (!ownerId) continue; // unassigned changes aren't credited to anyone
+    if (!ownerId) continue;
     if (!perOwner.has(ownerId)) perOwner.set(ownerId, {});
     const o = perOwner.get(ownerId)!;
     (o[stage] ??= new Set()).add(row.person_id);
