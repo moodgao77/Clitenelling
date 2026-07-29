@@ -1,23 +1,28 @@
 import Link from 'next/link';
 import { getSessionProfile } from '@/lib/auth';
-import { computeFunnel, todayDubaiISO, type Period, type FunnelCounts } from '@/lib/reporting';
+import {
+  computeFunnel,
+  todayDubaiISO,
+  startOfMonthDubaiISO,
+  addDaysISO,
+  type FunnelCounts,
+} from '@/lib/reporting';
 import Funnel from '@/components/Funnel';
 import Lotus from '@/components/Lotus';
-import DateFilter from '@/components/DateFilter';
+import ReportFilters from '@/components/ReportFilters';
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: 'day', label: 'Day' },
-  { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' },
-];
+// Always render fresh — the funnel must reflect the exact range every time.
+export const dynamic = 'force-dynamic';
 
 const overall = (c: FunnelCounts) =>
   c.contacted ? Math.round((c.purchased / c.contacted) * 100) : null;
 
+const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; date?: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const me = await getSessionProfile();
   if (!me || me.role !== 'manager') {
@@ -33,12 +38,20 @@ export default async function ReportsPage({
     );
   }
 
-  const { period: raw, date: rawDate } = await searchParams;
-  const period: Period = raw === 'day' || raw === 'week' || raw === 'month' ? raw : 'month';
   const today = todayDubaiISO();
-  const date =
-    rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) && rawDate <= today ? rawDate : today;
-  const { team, associates, label } = await computeFunnel(period, date);
+  const sp = await searchParams;
+  let to = isDate(sp.to) && sp.to! <= today ? sp.to! : today;
+  let from = isDate(sp.from) && sp.from! <= today ? sp.from! : startOfMonthDubaiISO();
+  if (from > to) [from, to] = [to, from];
+
+  const { team, associates, label } = await computeFunnel(from, to);
+
+  const presets = [
+    { label: 'Today', from: today, to: today },
+    { label: 'Last 3 days', from: addDaysISO(today, -2), to: today },
+    { label: 'Last 7 days', from: addDaysISO(today, -6), to: today },
+    { label: 'This month', from: startOfMonthDubaiISO(), to: today },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-10">
@@ -55,24 +68,8 @@ export default async function ReportsPage({
         matters more than raw totals — it shows where a client relationship needs help.
       </p>
 
-      <div className="mb-4 flex gap-2">
-        {PERIODS.map((p) => (
-          <Link
-            key={p.key}
-            href={`/reports?period=${p.key}&date=${date}`}
-            className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-              period === p.key
-                ? 'border-accent bg-accent text-accent-fg'
-                : 'border-line text-muted hover:border-line-strong'
-            }`}
-          >
-            {p.label}
-          </Link>
-        ))}
-      </div>
-
       <div className="mb-6">
-        <DateFilter period={period} date={date} max={today} />
+        <ReportFilters from={from} to={to} max={today} presets={presets} />
       </div>
 
       <section className="mb-8 rounded-2xl border border-line bg-surface p-5">
@@ -91,7 +88,7 @@ export default async function ReportsPage({
       <section>
         <h2 className="mb-3 text-base font-semibold text-heading">By sales executive</h2>
         {associates.length === 0 ? (
-          <p className="text-sm text-muted">No tracked activity in this period yet.</p>
+          <p className="text-sm text-muted">No tracked activity in this range yet.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {associates.map((a) => (
