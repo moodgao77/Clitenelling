@@ -55,6 +55,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         <p className="mt-1 text-muted" dir="ltr">
           {person.phone_e164}
         </p>
+        {person.source_detail && (
+          <p className="mt-1 text-sm text-muted" dir="auto">
+            Source: {person.source_detail}
+          </p>
+        )}
         <div className="mt-3 flex items-center gap-3">
           <span className="rounded-full bg-chip px-3 py-1 text-xs font-medium uppercase tracking-wide text-chip-fg">
             {ownerLabel}

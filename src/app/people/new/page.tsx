@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { addPerson } from '@/app/people/actions';
 import { SOURCE_LABEL, type Source } from '@/lib/types';
 
-const QUICK_SOURCES: Source[] = ['whatsapp', 'instagram', 'walk_in'];
+const QUICK_SOURCES: Source[] = ['whatsapp', 'instagram', 'walk_in', 'other'];
 
 export default function NewPersonPage() {
   const [state, formAction, pending] = useActionState(addPerson, undefined);
@@ -50,7 +50,7 @@ export default function NewPersonPage() {
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Source</span>
           <input type="hidden" name="source" value={source} />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {QUICK_SOURCES.map((s) => (
               <button
                 key={s}
@@ -66,6 +66,14 @@ export default function NewPersonPage() {
               </button>
             ))}
           </div>
+          {source === 'other' && (
+            <input
+              name="source_detail"
+              dir="auto"
+              placeholder="Where from? (e.g. referred by Sara)"
+              className="mt-1 h-11 rounded-xl border border-line bg-surface px-4 text-base text-ink outline-none transition-colors focus:border-gold"
+            />
+          )}
         </div>
 
         <label className="flex flex-col gap-1.5">

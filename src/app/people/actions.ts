@@ -6,7 +6,7 @@ import { normalizePhone } from '@/lib/phone';
 import { mergePerson } from '@/lib/merge';
 import type { Source } from '@/lib/types';
 
-const SOURCES: Source[] = ['whatsapp', 'instagram', 'walk_in', 'shopify', 'import'];
+const SOURCES: Source[] = ['whatsapp', 'instagram', 'walk_in', 'shopify', 'import', 'other'];
 
 export type QuickAddState = { error: string } | undefined;
 
@@ -22,6 +22,7 @@ export async function addPerson(
   const fullName = String(formData.get('full_name') ?? '').trim();
   const phoneRaw = String(formData.get('phone') ?? '').trim();
   const source = String(formData.get('source') ?? 'walk_in') as Source;
+  const sourceDetail = String(formData.get('source_detail') ?? '').trim();
   const note = String(formData.get('note') ?? '').trim();
 
   if (!phoneRaw) return { error: 'Phone number is required.' };
@@ -62,6 +63,7 @@ export async function addPerson(
         phone_e164: phone.e164,
         phone_raw: phoneRaw,
         source: src,
+        source_detail: src === 'other' ? sourceDetail : '',
         owner_id: user.id,
         stage: 'uncontacted',
       })

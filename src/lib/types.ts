@@ -6,7 +6,7 @@ export type Stage =
   | 'visited'
   | 'purchased';
 
-export type Source = 'whatsapp' | 'instagram' | 'walk_in' | 'shopify' | 'import';
+export type Source = 'whatsapp' | 'instagram' | 'walk_in' | 'shopify' | 'import' | 'other';
 export type ActivityType = 'appointment' | 'follow_up' | 'note';
 export type ActivityStatus = 'due' | 'done';
 export type Role = 'associate' | 'manager';
@@ -36,6 +36,7 @@ export const SOURCE_LABEL: Record<Source, string> = {
   walk_in: 'Walk-in',
   shopify: 'Shopify',
   import: 'Import',
+  other: 'Other',
 };
 
 export type Person = {
@@ -44,6 +45,7 @@ export type Person = {
   phone_e164: string;
   phone_raw: string;
   source: Source;
+  source_detail: string;
   owner_id: string | null;
   stage: Stage;
   stage_changed_at: string;
