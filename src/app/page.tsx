@@ -3,7 +3,6 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { dubaiDayBounds, dueTime, overdueDays } from '@/lib/day';
 import { completeReminder } from './home-actions';
-import Lotus from '@/components/Lotus';
 import StageBadge from '@/components/StageBadge';
 import type { Stage } from '@/lib/types';
 
@@ -54,14 +53,11 @@ export default async function TodayPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 pb-8">
-      <header className="flex items-center gap-3 py-5">
-        <Lotus className="w-8" />
-        <div>
-          <p className="eyebrow">{todayLabel}</p>
-          <h1 className="text-xl font-semibold tracking-tight text-heading">
-            {me ? `Good day, ${me.full_name.split(' ')[0]}` : 'Today'}
-          </h1>
-        </div>
+      <header className="py-5">
+        <p className="eyebrow">{todayLabel}</p>
+        <h1 className="text-xl font-semibold tracking-tight text-heading">
+          {me ? `Good day, ${me.full_name.split(' ')[0]}` : 'Today'}
+        </h1>
       </header>
 
       {overdue.length > 0 && (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Raleway } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import TopBar from "@/components/TopBar";
 import { getDueCount } from "@/lib/today";
 import { getSessionProfile } from "@/lib/auth";
 
@@ -34,6 +35,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${raleway.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-bg text-ink">
+        <TopBar />
         <div className="flex-1">{children}</div>
         <BottomNav dueCount={dueCount} isManager={me?.role === "manager"} />
       </body>

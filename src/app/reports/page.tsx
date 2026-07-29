@@ -55,12 +55,9 @@ export default async function ReportsPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-10">
-      <header className="flex items-center gap-3 py-5">
-        <Lotus className="w-8" />
-        <div>
-          <p className="eyebrow">Team funnel · {label}</p>
-          <h1 className="text-xl font-semibold tracking-tight text-heading">How the team is doing</h1>
-        </div>
+      <header className="py-5">
+        <p className="eyebrow">Team funnel · {label}</p>
+        <h1 className="text-xl font-semibold tracking-tight text-heading">How the team is doing</h1>
       </header>
 
       <p className="mb-5 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
