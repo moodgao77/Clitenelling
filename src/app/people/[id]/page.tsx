@@ -5,6 +5,7 @@ import { getSessionProfile } from '@/lib/auth';
 import StageStepper from '@/components/StageStepper';
 import ActivityTimeline from '@/components/ActivityTimeline';
 import OrderHistory from '@/components/OrderHistory';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import { assignToMeAction, saveNotesAction, addActivityAction } from './actions';
 import { waLink, defaultMessage } from '@/lib/whatsapp';
 import { SOURCE_LABEL, type Person, type Order, type Activity, type StageHistoryRow } from '@/lib/types';
@@ -69,17 +70,12 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <a
-        href={waLink(person.phone_e164, defaultMessage(person.full_name))}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mb-7 flex h-12 items-center justify-center gap-2 rounded-xl bg-accent text-base font-semibold text-accent-fg"
-      >
-        <svg viewBox="0 0 24 24" className="h-5 w-5 fill-[var(--accent-fg)]" aria-hidden="true">
-          <path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm-2.7 4.3c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3 4.8 4.1 2.4 1 2.9.8 3.4.8.5-.1 1.6-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.1l-.7.9c-.1.2-.3.2-.5.1-.3-.1-1.2-.5-2.3-1.4-.8-.7-1.4-1.6-1.6-1.9-.1-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-1-2.3c-.2-.5-.4-.4-.6-.4z" />
-        </svg>
-        Message on WhatsApp
-      </a>
+      <div className="mb-7">
+        <WhatsAppButton
+          href={waLink(person.phone_e164, defaultMessage(person.full_name))}
+          personId={person.id}
+        />
+      </div>
 
       <Section title="Stage">
         <StageStepper personId={person.id} current={person.stage} />
