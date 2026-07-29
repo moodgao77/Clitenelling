@@ -1,6 +1,7 @@
 export type Stage =
   | 'uncontacted'
   | 'contacted'
+  | 'replied'
   | 'visit_booked'
   | 'visited'
   | 'purchased';
@@ -14,6 +15,7 @@ export type Role = 'associate' | 'manager';
 export const STAGES: Stage[] = [
   'uncontacted',
   'contacted',
+  'replied',
   'visit_booked',
   'visited',
   'purchased',
@@ -22,6 +24,7 @@ export const STAGES: Stage[] = [
 export const STAGE_META: Record<Stage, { label: string }> = {
   uncontacted: { label: 'Uncontacted' },
   contacted: { label: 'Contacted' },
+  replied: { label: 'Replied' },
   visit_booked: { label: 'Visit booked' },
   visited: { label: 'Visited' },
   purchased: { label: 'Purchased' },
