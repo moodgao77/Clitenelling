@@ -12,25 +12,48 @@ async function client() {
   return { supabase, user };
 }
 
+// Working a client (moving their stage, noting an update) IS finishing the
+// follow-up. Auto-complete their due/overdue reminders so the associate never
+// has to separately hunt for a "Done" button. Future-dated reminders stay.
+async function completeDueFollowUps(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  personId: string,
+) {
+  await supabase
+    .from('activities')
+    .update({ status: 'done', completed_at: new Date().toISOString() })
+    .eq('person_id', personId)
+    .eq('type', 'follow_up')
+    .eq('status', 'due')
+    .lte('due_at', new Date().toISOString());
+}
+
+function refresh(personId: string) {
+  revalidatePath(`/people/${personId}`);
+  revalidatePath('/'); // Today queue + nav badge
+}
+
 export async function setStage(personId: string, stage: Stage) {
   if (!STAGES.includes(stage)) return;
   const { supabase } = await client();
   // The DB trigger writes the timestamped stage_history row automatically.
   await supabase.from('people').update({ stage }).eq('id', personId);
-  revalidatePath(`/people/${personId}`);
+  await completeDueFollowUps(supabase, personId);
+  refresh(personId);
 }
 
 export async function assignToMe(personId: string) {
   const { supabase, user } = await client();
   if (!user) return;
   await supabase.from('people').update({ owner_id: user.id }).eq('id', personId);
-  revalidatePath(`/people/${personId}`);
+  refresh(personId);
 }
 
 export async function saveNotes(personId: string, notes: string) {
   const { supabase } = await client();
   await supabase.from('people').update({ notes }).eq('id', personId);
-  revalidatePath(`/people/${personId}`);
+  await completeDueFollowUps(supabase, personId);
+  refresh(personId);
 }
 
 export async function addActivity(
@@ -50,7 +73,10 @@ export async function addActivity(
     trigger_kind: isTimed ? 'manual' : null,
     created_by: user?.id ?? null,
   });
-  revalidatePath(`/people/${personId}`);
+  // Logging a note = working the client → clear their due reminders.
+  // Scheduling a new follow-up/appointment is future work, so it doesn't.
+  if (input.type === 'note') await completeDueFollowUps(supabase, personId);
+  refresh(personId);
 }
 
 export async function completeActivity(activityId: string, personId: string) {
@@ -59,7 +85,7 @@ export async function completeActivity(activityId: string, personId: string) {
     .from('activities')
     .update({ status: 'done', completed_at: new Date().toISOString() })
     .eq('id', activityId);
-  revalidatePath(`/people/${personId}`);
+  refresh(personId);
 }
 
 // Form-action wrappers so buttons/forms can call these directly.

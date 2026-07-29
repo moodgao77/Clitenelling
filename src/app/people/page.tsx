@@ -1,8 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
-import { signOut } from '@/app/login/actions';
 import PersonCard from '@/components/PersonCard';
-import Lotus from '@/components/Lotus';
 import { STAGES, STAGE_META, type Person, type Stage } from '@/lib/types';
 import Link from 'next/link';
 
@@ -42,19 +40,10 @@ export default async function PeoplePage({
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 pb-6">
-      <header className="flex items-center justify-between py-5">
-        <div className="flex items-center gap-3">
-          <Lotus className="w-8" />
-          <div>
-            <p className="eyebrow">Marushika</p>
-            <h1 className="text-xl font-semibold tracking-tight text-heading">
-              {me ? `${me.full_name.split(' ')[0]}’s clients` : 'Clients'}
-            </h1>
-          </div>
-        </div>
-        <form action={signOut}>
-          <button className="text-sm text-muted underline-offset-4 hover:underline">Sign out</button>
-        </form>
+      <header className="py-5">
+        <h1 className="text-xl font-semibold tracking-tight text-heading">
+          {me ? `${me.full_name.split(' ')[0]}’s clients` : 'Clients'}
+        </h1>
       </header>
 
       <form method="get" className="mb-3">
