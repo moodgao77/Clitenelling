@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { getSessionProfile } from '@/lib/auth';
 import { STAGES, type Stage, type ActivityType } from '@/lib/types';
 
 async function client() {
@@ -46,6 +47,18 @@ export async function assignToMe(personId: string) {
   const { supabase, user } = await client();
   if (!user) return;
   await supabase.from('people').update({ owner_id: user.id }).eq('id', personId);
+  refresh(personId);
+}
+
+/** Manager-only: assign (or unassign) a client to any team member. */
+export async function assignOwner(personId: string, ownerId: string | null) {
+  const { supabase } = await client();
+  const me = await getSessionProfile();
+  if (!me || me.role !== 'manager') return; // managers only
+  await supabase
+    .from('people')
+    .update({ owner_id: ownerId || null })
+    .eq('id', personId);
   refresh(personId);
 }
 

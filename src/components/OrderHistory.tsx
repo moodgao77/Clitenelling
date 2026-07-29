@@ -4,7 +4,12 @@ const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat('en-AE', { style: 'currency', currency }).format(n);
 
 const day = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Dubai',
+  });
 
 /** Read-only mirror of Shopify orders. This tool never writes to Shopify. */
 export default function OrderHistory({ orders }: { orders: Order[] }) {

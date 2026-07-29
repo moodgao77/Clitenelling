@@ -6,6 +6,7 @@ import StageStepper from '@/components/StageStepper';
 import ActivityTimeline from '@/components/ActivityTimeline';
 import OrderHistory from '@/components/OrderHistory';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import AssignOwner from '@/components/AssignOwner';
 import { assignToMeAction, saveNotesAction, addActivityAction } from './actions';
 import { waLink, defaultMessage } from '@/lib/whatsapp';
 import { SOURCE_LABEL, type Person, type Order, type Activity, type StageHistoryRow } from '@/lib/types';
@@ -33,11 +34,16 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
     ]);
 
   const isMine = !!me && person.owner_id === me.id;
+  const isManager = me?.role === 'manager';
   const ownerLabel = !person.owner_id
     ? 'Unassigned'
     : isMine
       ? 'You'
       : (ownerRow as { full_name?: string } | null)?.full_name ?? 'Another associate';
+
+  const { data: members } = isManager
+    ? await supabase.from('profiles').select('id, full_name').order('full_name')
+    : { data: null };
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 pb-12">
@@ -60,17 +66,25 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             Source: {person.source_detail}
           </p>
         )}
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-chip px-3 py-1 text-xs font-medium uppercase tracking-wide text-chip-fg">
             {ownerLabel}
           </span>
-          {!person.owner_id && (
-            <form action={assignToMeAction}>
-              <input type="hidden" name="personId" value={person.id} />
-              <button className="rounded-full border border-accent px-3 py-1 text-xs font-semibold text-heading">
-                Assign to me
-              </button>
-            </form>
+          {isManager ? (
+            <AssignOwner
+              personId={person.id}
+              currentOwnerId={person.owner_id}
+              members={members ?? []}
+            />
+          ) : (
+            !person.owner_id && (
+              <form action={assignToMeAction}>
+                <input type="hidden" name="personId" value={person.id} />
+                <button className="rounded-full border border-accent px-3 py-1 text-xs font-semibold text-heading">
+                  Assign to me
+                </button>
+              </form>
+            )
           )}
         </div>
       </div>
