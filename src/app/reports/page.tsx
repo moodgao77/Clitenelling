@@ -55,9 +55,17 @@ export default async function ReportsPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-10">
-      <header className="py-5">
-        <p className="eyebrow">Team funnel · {label}</p>
-        <h1 className="text-xl font-semibold tracking-tight text-heading">How the team is doing</h1>
+      <header className="flex items-start justify-between gap-3 py-5">
+        <div>
+          <p className="eyebrow">Team funnel · {label}</p>
+          <h1 className="text-xl font-semibold tracking-tight text-heading">How the team is doing</h1>
+        </div>
+        <a
+          href="/reports/export"
+          className="shrink-0 rounded-lg border border-line px-3 py-2 text-sm font-medium text-heading transition-colors hover:border-line-strong"
+        >
+          Export CSV
+        </a>
       </header>
 
       <p className="mb-5 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
