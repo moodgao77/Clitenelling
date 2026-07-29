@@ -69,9 +69,14 @@ export async function computeFunnel(fromDate: string, toDate: string) {
   const supabase = await createServerSupabase();
   const { startISO, endISO, label } = rangeBounds(fromDate, toDate);
 
+  // Count only REAL transitions (from_stage present). Rows with a null
+  // from_stage are the initial state written when a person is created/imported
+  // — those aren't associate-driven funnel activity and would otherwise inflate
+  // counts (e.g. a Shopify buyer imported as "Purchased" today).
   const { data } = await supabase
     .from('stage_history')
     .select('to_stage, person_id, people:person_id (owner_id)')
+    .not('from_stage', 'is', null)
     .gte('changed_at', startISO)
     .lt('changed_at', endISO)
     .returns<HistoryRow[]>();
