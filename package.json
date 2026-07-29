@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "seed": "node --env-file=.env.local scripts/seed.mjs"
+    "seed": "node --env-file=.env.local scripts/seed.mjs",
+    "sync:shopify": "node --env-file=.env.local scripts/sync-shopify.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
