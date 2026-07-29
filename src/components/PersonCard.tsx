@@ -12,16 +12,16 @@ export default function PersonCard({
   return (
     <Link
       href={`/people/${person.id}`}
-      className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-4 active:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:active:bg-neutral-800"
+      className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong active:bg-surface-2"
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-medium" dir="auto">
+        <p className="truncate text-base font-semibold text-ink" dir="auto">
           {person.full_name || 'Unnamed'}
         </p>
-        <p className="mt-0.5 truncate text-sm text-neutral-500" dir="ltr">
+        <p className="mt-0.5 truncate text-sm text-muted" dir="ltr">
           {person.phone_e164}
         </p>
-        <p className="mt-0.5 text-xs text-neutral-400">{ownerLabel}</p>
+        <p className="mt-1 text-xs text-muted">{ownerLabel}</p>
       </div>
       <StageBadge stage={person.stage} />
     </Link>

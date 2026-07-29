@@ -13,27 +13,27 @@ export default function NewPersonPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 pb-8">
-      <header className="flex items-center justify-between py-4">
-        <h1 className="text-xl font-semibold tracking-tight">New contact</h1>
-        <Link href="/people" className="text-sm text-neutral-500">
+      <header className="flex items-center justify-between py-5">
+        <h1 className="text-xl font-semibold tracking-tight text-heading">New contact</h1>
+        <Link href="/people" className="text-sm text-muted underline-offset-4 hover:underline">
           Cancel
         </Link>
       </header>
 
       <form action={formAction} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Name</span>
           <input
             name="full_name"
             autoComplete="name"
             dir="auto"
-            className="h-12 rounded-xl border border-neutral-300 px-4 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900"
+            className="h-12 rounded-xl border border-line bg-surface px-4 text-base text-ink outline-none transition-colors focus:border-gold"
           />
         </label>
 
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">
-            Phone <span className="text-red-500">*</span>
+            Phone <span className="text-danger">*</span>
           </span>
           <input
             name="phone"
@@ -43,11 +43,11 @@ export default function NewPersonPage() {
             required
             placeholder="050 123 4567"
             dir="ltr"
-            className="h-12 rounded-xl border border-neutral-300 px-4 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900"
+            className="h-12 rounded-xl border border-line bg-surface px-4 text-base text-ink outline-none transition-colors focus:border-gold"
           />
         </label>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Source</span>
           <input type="hidden" name="source" value={source} />
           <div className="grid grid-cols-3 gap-2">
@@ -56,10 +56,10 @@ export default function NewPersonPage() {
                 key={s}
                 type="button"
                 onClick={() => setSource(s)}
-                className={`h-11 rounded-xl border text-sm ${
+                className={`h-11 rounded-xl border text-sm transition-colors ${
                   source === s
-                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900'
-                    : 'border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-300'
+                    ? 'border-accent bg-accent text-accent-fg'
+                    : 'border-line text-muted hover:border-line-strong'
                 }`}
               >
                 {SOURCE_LABEL[s]}
@@ -68,18 +68,18 @@ export default function NewPersonPage() {
           </div>
         </div>
 
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Note (optional)</span>
           <textarea
             name="note"
             rows={3}
             dir="auto"
-            className="rounded-xl border border-neutral-300 px-4 py-3 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900"
+            className="rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-gold"
           />
         </label>
 
         {state?.error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {state.error}
           </p>
         )}
@@ -87,7 +87,7 @@ export default function NewPersonPage() {
         <button
           type="submit"
           disabled={pending}
-          className="mt-1 h-12 rounded-xl bg-neutral-900 text-base font-medium text-white disabled:opacity-60 dark:bg-white dark:text-neutral-900"
+          className="mt-1 h-12 rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity disabled:opacity-60"
         >
           {pending ? 'Saving…' : 'Save contact'}
         </button>

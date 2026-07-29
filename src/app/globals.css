@@ -1,26 +1,171 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Marushika — Ivory & Plum
+   Design tokens. Light is the primary world; dark is a restrained
+   deep-plum version of the same system. Components read semantic
+   tokens (never raw hex), so both themes stay in sync.
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #f3ead9;
+  --surface: #fcf9f2;
+  --surface-2: #f7efe1;
+  --line: rgba(74, 14, 51, 0.12);
+  --line-strong: rgba(74, 14, 51, 0.22);
+  --ink: #34241d;
+  --muted: #8a7768;
+  --heading: #4a0e33;
+  --gold: #a9791f;
+  --gold-soft: rgba(169, 121, 31, 0.14);
+  --accent: #4a0e33;
+  --accent-fg: #f6ecd8;
+  --chip-bg: rgba(74, 14, 51, 0.07);
+  --chip-fg: #4a0e33;
+  --danger: #9a2b2b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Funnel stages — a quiet ivory → gold → plum progression */
+  --st-uncontacted-bg: rgba(138, 119, 104, 0.16);
+  --st-uncontacted-fg: #756456;
+  --st-contacted-bg: rgba(74, 14, 51, 0.09);
+  --st-contacted-fg: #4a0e33;
+  --st-replied-bg: rgba(74, 14, 51, 0.15);
+  --st-replied-fg: #4a0e33;
+  --st-visit_booked-bg: rgba(169, 121, 31, 0.16);
+  --st-visit_booked-fg: #7a5410;
+  --st-visited-bg: rgba(169, 121, 31, 0.26);
+  --st-visited-fg: #5e410c;
+  --st-purchased-bg: #4a0e33;
+  --st-purchased-fg: #f6ecd8;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --bg: #1f0c16;
+    --surface: #2c1220;
+    --surface-2: #351526;
+    --line: rgba(203, 162, 74, 0.16);
+    --line-strong: rgba(203, 162, 74, 0.30);
+    --ink: #efe3d4;
+    --muted: #b69ba6;
+    --heading: #ead9ae;
+    --gold: #cba24a;
+    --gold-soft: rgba(203, 162, 74, 0.16);
+    --accent: #cba24a;
+    --accent-fg: #2a0a1e;
+    --chip-bg: rgba(203, 162, 74, 0.12);
+    --chip-fg: #ead5a6;
+    --danger: #e08a8a;
+
+    --st-uncontacted-bg: rgba(182, 155, 166, 0.16);
+    --st-uncontacted-fg: #c3b0b8;
+    --st-contacted-bg: rgba(203, 162, 74, 0.12);
+    --st-contacted-fg: #ead5a6;
+    --st-replied-bg: rgba(203, 162, 74, 0.20);
+    --st-replied-fg: #f0d9a6;
+    --st-visit_booked-bg: rgba(203, 162, 74, 0.24);
+    --st-visit_booked-fg: #f0d9a6;
+    --st-visited-bg: rgba(203, 162, 74, 0.36);
+    --st-visited-fg: #fbeccb;
+    --st-purchased-bg: #cba24a;
+    --st-purchased-fg: #2a0a1e;
   }
 }
 
+:root[data-theme="dark"] {
+  --bg: #1f0c16;
+  --surface: #2c1220;
+  --surface-2: #351526;
+  --line: rgba(203, 162, 74, 0.16);
+  --line-strong: rgba(203, 162, 74, 0.30);
+  --ink: #efe3d4;
+  --muted: #b69ba6;
+  --heading: #ead9ae;
+  --gold: #cba24a;
+  --gold-soft: rgba(203, 162, 74, 0.16);
+  --accent: #cba24a;
+  --accent-fg: #2a0a1e;
+  --chip-bg: rgba(203, 162, 74, 0.12);
+  --chip-fg: #ead5a6;
+  --danger: #e08a8a;
+
+  --st-uncontacted-bg: rgba(182, 155, 166, 0.16);
+  --st-uncontacted-fg: #c3b0b8;
+  --st-contacted-bg: rgba(203, 162, 74, 0.12);
+  --st-contacted-fg: #ead5a6;
+  --st-replied-bg: rgba(203, 162, 74, 0.20);
+  --st-replied-fg: #f0d9a6;
+  --st-visit_booked-bg: rgba(203, 162, 74, 0.24);
+  --st-visit_booked-fg: #f0d9a6;
+  --st-visited-bg: rgba(203, 162, 74, 0.36);
+  --st-visited-fg: #fbeccb;
+  --st-purchased-bg: #cba24a;
+  --st-purchased-fg: #2a0a1e;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-heading: var(--heading);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-chip: var(--chip-bg);
+  --color-chip-fg: var(--chip-fg);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-raleway), system-ui, "Segoe UI", sans-serif;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-raleway), system-ui, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Shared components ---------- */
+
+/* Tracked-out uppercase label, echoing the brand book side labels */
+.eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.hairline { height: 1px; background: var(--line); border: 0; }
+
+/* Stage badge — colour comes from per-stage tokens */
+.stage-badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.stage-uncontacted { background: var(--st-uncontacted-bg); color: var(--st-uncontacted-fg); }
+.stage-contacted { background: var(--st-contacted-bg); color: var(--st-contacted-fg); }
+.stage-replied { background: var(--st-replied-bg); color: var(--st-replied-fg); }
+.stage-visit_booked { background: var(--st-visit_booked-bg); color: var(--st-visit_booked-fg); }
+.stage-visited { background: var(--st-visited-bg); color: var(--st-visited-fg); }
+.stage-purchased { background: var(--st-purchased-bg); color: var(--st-purchased-fg); }
+
+/* Focus ring for keyboard users */
+:where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

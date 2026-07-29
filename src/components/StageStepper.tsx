@@ -16,6 +16,11 @@ export default function StageStepper({
       {STAGES.map((s, i) => {
         const isCurrent = s === current;
         const isPast = i < currentIdx;
+        const cls = isCurrent
+          ? 'bg-accent text-accent-fg border-accent font-semibold'
+          : isPast
+            ? 'bg-gold-soft text-gold border-transparent'
+            : 'border-line text-muted';
         return (
           <form key={s} action={setStageAction}>
             <input type="hidden" name="personId" value={personId} />
@@ -23,13 +28,7 @@ export default function StageStepper({
             <button
               type="submit"
               disabled={isCurrent}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm ${
-                isCurrent
-                  ? STAGE_META[s].classes + ' font-semibold ring-2 ring-neutral-900 dark:ring-white'
-                  : isPast
-                    ? 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'
-                    : 'border border-dashed border-neutral-300 text-neutral-500 dark:border-neutral-700'
-              }`}
+              className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors ${cls}`}
             >
               {STAGE_META[s].label}
             </button>

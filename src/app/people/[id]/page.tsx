@@ -39,27 +39,29 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       : (ownerRow as { full_name?: string } | null)?.full_name ?? 'Another associate';
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 pb-10">
+    <main className="mx-auto w-full max-w-xl px-4 pb-12">
       <header className="flex items-center justify-between py-4">
-        <Link href="/people" className="text-sm text-neutral-500">
-          ← Clients
+        <Link href="/people" className="text-sm text-muted underline-offset-4 hover:underline">
+          ‹ Clients
         </Link>
-        <span className="text-xs text-neutral-400">{SOURCE_LABEL[person.source]}</span>
+        <span className="eyebrow">{SOURCE_LABEL[person.source]}</span>
       </header>
 
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold tracking-tight" dir="auto">
+      <div className="mb-5">
+        <h1 className="text-3xl font-semibold tracking-tight text-heading" dir="auto">
           {person.full_name || 'Unnamed'}
         </h1>
-        <p className="mt-1 text-neutral-500" dir="ltr">
+        <p className="mt-1 text-muted" dir="ltr">
           {person.phone_e164}
         </p>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="text-sm text-neutral-500">Owner: {ownerLabel}</span>
+        <div className="mt-3 flex items-center gap-3">
+          <span className="rounded-full bg-chip px-3 py-1 text-xs font-medium uppercase tracking-wide text-chip-fg">
+            {ownerLabel}
+          </span>
           {!person.owner_id && (
             <form action={assignToMeAction}>
               <input type="hidden" name="personId" value={person.id} />
-              <button className="rounded-lg border border-neutral-900 px-2.5 py-1 text-xs font-medium dark:border-white">
+              <button className="rounded-full border border-accent px-3 py-1 text-xs font-semibold text-heading">
                 Assign to me
               </button>
             </form>
@@ -71,9 +73,12 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         href={waLink(person.phone_e164, defaultMessage(person.full_name))}
         target="_blank"
         rel="noopener noreferrer"
-        className="mb-6 flex h-12 items-center justify-center gap-2 rounded-xl bg-[#25D366] text-base font-semibold text-white"
+        className="mb-7 flex h-12 items-center justify-center gap-2 rounded-xl bg-accent text-base font-semibold text-accent-fg"
       >
-        <span>💬</span> Message on WhatsApp
+        <svg viewBox="0 0 24 24" className="h-5 w-5 fill-[var(--accent-fg)]" aria-hidden="true">
+          <path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm-2.7 4.3c-.2 0-.5 0-.7.3-.3.3-1 1-1 2.3s1 2.7 1.2 2.9c.1.2 2 3 4.8 4.1 2.4 1 2.9.8 3.4.8.5-.1 1.6-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3l-2-1c-.3-.1-.5-.2-.7.1l-.7.9c-.1.2-.3.2-.5.1-.3-.1-1.2-.5-2.3-1.4-.8-.7-1.4-1.6-1.6-1.9-.1-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-1-2.3c-.2-.5-.4-.4-.6-.4z" />
+        </svg>
+        Message on WhatsApp
       </a>
 
       <Section title="Stage">
@@ -89,9 +94,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             dir="auto"
             defaultValue={person.notes}
             placeholder="Sizes, colours, occasions, preferred contact time…"
-            className="rounded-xl border border-neutral-300 px-4 py-3 text-base outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900"
+            className="rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-gold"
           />
-          <button className="self-end rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+          <button className="self-end rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-fg">
             Save notes
           </button>
         </form>
@@ -102,14 +107,16 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       </Section>
 
       <Section title="Activity">
-        <details className="mb-3 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-          <summary className="cursor-pointer text-sm font-medium">＋ Add follow-up / note</summary>
+        <details className="mb-4 rounded-xl border border-line bg-surface p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-heading">
+            + Add follow-up or note
+          </summary>
           <form action={addActivityAction} className="mt-3 flex flex-col gap-2">
             <input type="hidden" name="personId" value={person.id} />
             <select
               name="type"
               defaultValue="follow_up"
-              className="h-11 rounded-xl border border-neutral-300 px-3 text-base dark:border-neutral-700 dark:bg-neutral-900"
+              className="h-11 rounded-xl border border-line bg-surface px-3 text-base text-ink"
             >
               <option value="follow_up">Follow-up</option>
               <option value="appointment">Appointment</option>
@@ -119,21 +126,21 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               name="title"
               placeholder="Title (e.g. Call about Eid collection)"
               dir="auto"
-              className="h-11 rounded-xl border border-neutral-300 px-3 text-base dark:border-neutral-700 dark:bg-neutral-900"
+              className="h-11 rounded-xl border border-line bg-surface px-3 text-base text-ink outline-none focus:border-gold"
             />
             <input
               name="dueAt"
               type="datetime-local"
-              className="h-11 rounded-xl border border-neutral-300 px-3 text-base dark:border-neutral-700 dark:bg-neutral-900"
+              className="h-11 rounded-xl border border-line bg-surface px-3 text-base text-ink"
             />
             <textarea
               name="body"
               rows={2}
               placeholder="Details (optional)"
               dir="auto"
-              className="rounded-xl border border-neutral-300 px-3 py-2 text-base dark:border-neutral-700 dark:bg-neutral-900"
+              className="rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink outline-none focus:border-gold"
             />
-            <button className="h-11 rounded-xl bg-neutral-900 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+            <button className="h-11 rounded-xl bg-accent text-sm font-semibold text-accent-fg">
               Add
             </button>
           </form>
@@ -150,8 +157,8 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">{title}</h2>
+    <section className="mb-7">
+      <p className="eyebrow mb-2.5">{title}</p>
       {children}
     </section>
   );
