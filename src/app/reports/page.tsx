@@ -19,6 +19,12 @@ const overall = (c: FunnelCounts) =>
 
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+function drilldownHref(stage: string, from: string, to: string, salesExecutiveId?: string) {
+  const params = new URLSearchParams({ funnelStage: stage, from, to });
+  if (salesExecutiveId) params.set('salesExecutive', salesExecutiveId);
+  return `/people?${params.toString()}`;
+}
+
 export default async function ReportsPage({
   searchParams,
 }: {
@@ -87,7 +93,7 @@ export default async function ReportsPage({
             </span>
           </span>
         </div>
-        <Funnel counts={team} />
+        <Funnel counts={team} hrefForStage={(stage) => drilldownHref(stage, from, to)} />
       </section>
 
       <section>
@@ -104,7 +110,11 @@ export default async function ReportsPage({
                     {overall(a.counts) === null ? '—' : `${overall(a.counts)}%`}
                   </span>
                 </div>
-                <Funnel counts={a.counts} showConversions={false} />
+                <Funnel
+                  counts={a.counts}
+                  showConversions={false}
+                  hrefForStage={(stage) => drilldownHref(stage, from, to, a.id)}
+                />
               </div>
             ))}
           </div>

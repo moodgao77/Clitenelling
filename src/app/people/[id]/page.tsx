@@ -7,9 +7,17 @@ import ActivityTimeline from '@/components/ActivityTimeline';
 import OrderHistory from '@/components/OrderHistory';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import AssignOwner from '@/components/AssignOwner';
+import AssignSalesExecutive from '@/components/AssignSalesExecutive';
 import { assignToMeAction, saveNotesAction, addActivityAction } from './actions';
 import { waLink, defaultMessage } from '@/lib/whatsapp';
-import { SOURCE_LABEL, type Person, type Order, type Activity, type StageHistoryRow } from '@/lib/types';
+import {
+  SOURCE_LABEL,
+  type Person,
+  type Order,
+  type Activity,
+  type StageHistoryRow,
+  type SalesExecutive,
+} from '@/lib/types';
 
 export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,15 +31,26 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
     .maybeSingle<Person>();
   if (!person) notFound();
 
-  const [{ data: orders }, { data: activities }, { data: history }, { data: ownerRow }] =
-    await Promise.all([
-      supabase.from('orders').select('*').eq('person_id', id).order('ordered_at', { ascending: false }),
-      supabase.from('activities').select('*').eq('person_id', id),
-      supabase.from('stage_history').select('*').eq('person_id', id).order('changed_at', { ascending: false }),
-      person.owner_id
-        ? supabase.from('profiles').select('full_name').eq('id', person.owner_id).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
+  const [
+    { data: orders },
+    { data: activities },
+    { data: history },
+    { data: ownerRow },
+    { data: salesExecutives },
+  ] = await Promise.all([
+    supabase.from('orders').select('*').eq('person_id', id).order('ordered_at', { ascending: false }),
+    supabase.from('activities').select('*').eq('person_id', id),
+    supabase.from('stage_history').select('*').eq('person_id', id).order('changed_at', { ascending: false }),
+    person.owner_id
+      ? supabase.from('profiles').select('full_name').eq('id', person.owner_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('sales_executives')
+      .select('id, name')
+      .eq('active', true)
+      .order('sort_order')
+      .returns<Pick<SalesExecutive, 'id' | 'name'>[]>(),
+  ]);
 
   const isMine = !!me && person.owner_id === me.id;
   const isManager = me?.role === 'manager';
@@ -68,8 +87,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         )}
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-chip px-3 py-1 text-xs font-medium uppercase tracking-wide text-chip-fg">
-            {ownerLabel}
+            Owner: {ownerLabel}
           </span>
+          <AssignSalesExecutive
+            personId={person.id}
+            currentSalesExecutiveId={person.sales_executive_id}
+            executives={salesExecutives ?? []}
+          />
           {isManager ? (
             <AssignOwner
               personId={person.id}

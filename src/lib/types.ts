@@ -39,6 +39,13 @@ export const SOURCE_LABEL: Record<Source, string> = {
   other: 'Other',
 };
 
+export type SalesExecutive = {
+  id: string;
+  name: string;
+  active: boolean;
+  sort_order: number;
+};
+
 export type Person = {
   id: string;
   full_name: string;
@@ -47,6 +54,7 @@ export type Person = {
   source: Source;
   source_detail: string;
   owner_id: string | null;
+  sales_executive_id: string | null;
   stage: Stage;
   stage_changed_at: string;
   notes: string;

@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { FUNNEL_STAGES, stepConversion, type FunnelCounts } from '@/lib/reporting';
+import type { Stage } from '@/lib/types';
 
 /** Horizontal bar funnel in a single brand hue. Bar length encodes magnitude
  *  (distinct clients at each stage); the conversion % between steps is the
@@ -6,9 +8,11 @@ import { FUNNEL_STAGES, stepConversion, type FunnelCounts } from '@/lib/reportin
 export default function Funnel({
   counts,
   showConversions = true,
+  hrefForStage,
 }: {
   counts: FunnelCounts;
   showConversions?: boolean;
+  hrefForStage?: (stage: Stage) => string;
 }) {
   const values = FUNNEL_STAGES.map((s) => counts[s.stage]);
   const denom = Math.max(...values, 1);
@@ -19,6 +23,7 @@ export default function Funnel({
         const c = counts[s.stage];
         const w = Math.round((c / denom) * 100);
         const conv = stepConversion(counts, i);
+        const href = c > 0 ? hrefForStage?.(s.stage) : undefined;
         return (
           <div key={s.stage}>
             {showConversions && i > 0 && (
@@ -35,9 +40,19 @@ export default function Funnel({
                   style={{ width: `${Math.max(w, c > 0 ? 6 : 0)}%` }}
                 />
               </div>
-              <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-ink">
-                {c}
-              </span>
+              {href ? (
+                <Link
+                  href={href}
+                  aria-label={`View ${s.label.toLowerCase()} clients`}
+                  className="w-8 shrink-0 rounded text-right text-sm font-semibold tabular-nums text-ink underline-offset-4 hover:text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-gold"
+                >
+                  {c}
+                </Link>
+              ) : (
+                <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-ink">
+                  {c}
+                </span>
+              )}
             </div>
           </div>
         );

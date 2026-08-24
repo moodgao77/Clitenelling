@@ -62,6 +62,28 @@ export async function assignOwner(personId: string, ownerId: string | null) {
   refresh(personId);
 }
 
+export async function assignSalesExecutive(personId: string, salesExecutiveId: string | null) {
+  const { supabase, user } = await client();
+  if (!user) return;
+
+  const normalizedId = salesExecutiveId || null;
+  if (normalizedId) {
+    const { data: executive } = await supabase
+      .from('sales_executives')
+      .select('id')
+      .eq('id', normalizedId)
+      .eq('active', true)
+      .maybeSingle();
+    if (!executive) return;
+  }
+
+  await supabase
+    .from('people')
+    .update({ sales_executive_id: normalizedId })
+    .eq('id', personId);
+  refresh(personId);
+}
+
 export async function saveNotes(personId: string, notes: string) {
   const { supabase } = await client();
   await supabase.from('people').update({ notes }).eq('id', personId);

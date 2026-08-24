@@ -1,5 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase/server';
-import type { Stage } from '@/lib/types';
+import type { Person, Stage } from '@/lib/types';
 
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
 const DAY = 86_400_000;
@@ -58,11 +58,104 @@ export function rangeBounds(fromDate: string, toDate: string) {
 
 export type FunnelCounts = Record<string, number>;
 export type AssociateFunnel = { id: string; name: string; counts: FunnelCounts };
-type HistoryRow = { to_stage: string; person_id: string; people: { owner_id: string | null } | null };
+export type FunnelHistoryRow = {
+  to_stage: string;
+  person_id: string;
+  people: { sales_executive_id: string | null } | null;
+};
+export type FunnelDrilldownPerson = Pick<
+  Person,
+  'id' | 'full_name' | 'phone_e164' | 'stage' | 'sales_executive_id'
+>;
+export type FunnelDrilldownRow = {
+  person_id: string;
+  people: FunnelDrilldownPerson | null;
+};
+
+export const UNASSIGNED_EXECUTIVE_ID = 'unassigned';
+
+const emptyCounts = (): FunnelCounts =>
+  Object.fromEntries(FUNNEL_STAGES.map((s) => [s.stage, 0])) as FunnelCounts;
+
+const toCounts = (rec: Record<string, Set<string>>): FunnelCounts => {
+  const c = emptyCounts();
+  for (const s of FUNNEL_STAGES) c[s.stage] = rec[s.stage]?.size ?? 0;
+  return c;
+};
+
+export function isFunnelStage(stage?: string): stage is Stage {
+  return !!stage && FUNNEL_STAGES.some((s) => s.stage === stage);
+}
+
+export function funnelStageLabel(stage: Stage) {
+  return FUNNEL_STAGES.find((s) => s.stage === stage)?.label ?? stage;
+}
+
+export function filterFunnelDrilldownRows(
+  rows: FunnelDrilldownRow[],
+  salesExecutiveId?: string,
+): FunnelDrilldownPerson[] {
+  const people = new Map<string, FunnelDrilldownPerson>();
+
+  for (const row of rows) {
+    const person = row.people;
+    if (!person) continue;
+
+    if (salesExecutiveId === UNASSIGNED_EXECUTIVE_ID && person.sales_executive_id !== null) continue;
+    if (
+      salesExecutiveId &&
+      salesExecutiveId !== UNASSIGNED_EXECUTIVE_ID &&
+      person.sales_executive_id !== salesExecutiveId
+    ) {
+      continue;
+    }
+
+    if (!people.has(person.id)) people.set(person.id, person);
+  }
+
+  return [...people.values()];
+}
+
+export function aggregateFunnelRows(
+  rows: FunnelHistoryRow[],
+  salesExecutiveNames: Map<string, string>,
+) {
+  const team: Record<string, Set<string>> = {};
+  const perExecutive = new Map<string, Record<string, Set<string>>>();
+  const orderById = new Map<string, number>();
+
+  let order = 0;
+  for (const id of salesExecutiveNames.keys()) orderById.set(id, order++);
+  orderById.set(UNASSIGNED_EXECUTIVE_ID, order);
+
+  for (const row of rows) {
+    const stage = row.to_stage;
+    (team[stage] ??= new Set()).add(row.person_id);
+
+    const executiveId = row.people?.sales_executive_id ?? UNASSIGNED_EXECUTIVE_ID;
+    if (!perExecutive.has(executiveId)) perExecutive.set(executiveId, {});
+    const executive = perExecutive.get(executiveId)!;
+    (executive[stage] ??= new Set()).add(row.person_id);
+  }
+
+  const associates: AssociateFunnel[] = [...perExecutive.entries()]
+    .map(([id, rec]) => ({
+      id,
+      name: id === UNASSIGNED_EXECUTIVE_ID ? 'Unassigned' : salesExecutiveNames.get(id) ?? 'Unknown',
+      counts: toCounts(rec),
+    }))
+    .sort((a, b) => {
+      const contactedDelta = b.counts.contacted - a.counts.contacted;
+      if (contactedDelta !== 0) return contactedDelta;
+      return (orderById.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (orderById.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+    });
+
+  return { team: toCounts(team), associates };
+}
 
 /**
  * Counts, over a date range, how many distinct clients ENTERED each funnel
- * stage — team-wide and per associate (attributed to the client's owner).
+ * stage — team-wide and per sales executive assigned on the client record.
  * Reads the timestamped stage_history ledger, so the funnel can't be gamed.
  */
 export async function computeFunnel(fromDate: string, toDate: string) {
@@ -75,39 +168,21 @@ export async function computeFunnel(fromDate: string, toDate: string) {
   // counts (e.g. a Shopify buyer imported as "Purchased" today).
   const { data } = await supabase
     .from('stage_history')
-    .select('to_stage, person_id, people:person_id (owner_id)')
+    .select('to_stage, person_id, people:person_id (sales_executive_id)')
     .not('from_stage', 'is', null)
     .gte('changed_at', startISO)
     .lt('changed_at', endISO)
-    .returns<HistoryRow[]>();
+    .returns<FunnelHistoryRow[]>();
 
-  const team: Record<string, Set<string>> = {};
-  const perOwner = new Map<string, Record<string, Set<string>>>();
+  const { data: salesExecutives } = await supabase
+    .from('sales_executives')
+    .select('id, name')
+    .eq('active', true)
+    .order('sort_order');
+  const nameById = new Map((salesExecutives ?? []).map((p) => [p.id, p.name]));
+  const result = aggregateFunnelRows(data ?? [], nameById);
 
-  for (const row of data ?? []) {
-    const stage = row.to_stage;
-    (team[stage] ??= new Set()).add(row.person_id);
-    const ownerId = row.people?.owner_id;
-    if (!ownerId) continue;
-    if (!perOwner.has(ownerId)) perOwner.set(ownerId, {});
-    const o = perOwner.get(ownerId)!;
-    (o[stage] ??= new Set()).add(row.person_id);
-  }
-
-  const { data: profiles } = await supabase.from('profiles').select('id, full_name');
-  const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
-
-  const toCounts = (rec: Record<string, Set<string>>): FunnelCounts => {
-    const c: FunnelCounts = {};
-    for (const s of FUNNEL_STAGES) c[s.stage] = rec[s.stage]?.size ?? 0;
-    return c;
-  };
-
-  const associates: AssociateFunnel[] = [...perOwner.entries()]
-    .map(([id]) => ({ id, name: nameById.get(id) ?? 'Unknown', counts: toCounts(perOwner.get(id)!) }))
-    .sort((a, b) => b.counts.contacted - a.counts.contacted);
-
-  return { team: toCounts(team), associates, label };
+  return { ...result, label };
 }
 
 /** Conversion from the previous step, as a whole percent (null for the first). */

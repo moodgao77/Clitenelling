@@ -38,6 +38,13 @@ const USERS = [
   { email: 'manager@demo.test', full_name: 'Rania Aziz', role: 'manager' },
 ];
 
+const SALES_EXECUTIVES = [
+  { id: 'manal', name: 'Manal', active: true, sort_order: 10 },
+  { id: 'danila', name: 'Danila', active: true, sort_order: 20 },
+  { id: 'zhang', name: 'Zhang', active: true, sort_order: 30 },
+  { id: 'other', name: 'Other', active: true, sort_order: 40 },
+];
+
 async function ensureUser({ email, full_name, role }) {
   const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
   let user = list?.users?.find((u) => u.email === email);
@@ -96,6 +103,7 @@ function furthestStages() {
 }
 
 async function seedPeople(associateIds) {
+  await db.from('sales_executives').upsert(SALES_EXECUTIVES);
   await db.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await db.from('activities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await db.from('stage_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -127,6 +135,7 @@ async function seedPeople(associateIds) {
         phone_raw: phone,
         source,
         owner_id: owner,
+        sales_executive_id: isProspect ? null : SALES_EXECUTIVES[i % SALES_EXECUTIVES.length].id,
         stage,
         notes: NOTES[i % NOTES.length],
       })

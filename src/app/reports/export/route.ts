@@ -19,6 +19,7 @@ type Person = {
   source: Source;
   source_detail: string;
   owner_id: string | null;
+  sales_executive_id: string | null;
   stage: Stage;
   created_at: string;
   stage_changed_at: string;
@@ -31,21 +32,28 @@ export async function GET() {
   }
 
   const supabase = await createServerSupabase();
-  const [{ data: people }, { data: profiles }, { data: activities }, { data: orders }] =
-    await Promise.all([
-      supabase
-        .from('people')
-        .select(
-          'id, full_name, phone_e164, source, source_detail, owner_id, stage, created_at, stage_changed_at',
-        )
-        .order('created_at', { ascending: true })
-        .returns<Person[]>(),
-      supabase.from('profiles').select('id, full_name'),
-      supabase.from('activities').select('person_id, status'),
-      supabase.from('orders').select('person_id, total'),
-    ]);
+  const [
+    { data: people },
+    { data: profiles },
+    { data: salesExecutives },
+    { data: activities },
+    { data: orders },
+  ] = await Promise.all([
+    supabase
+      .from('people')
+      .select(
+        'id, full_name, phone_e164, source, source_detail, owner_id, sales_executive_id, stage, created_at, stage_changed_at',
+      )
+      .order('created_at', { ascending: true })
+      .returns<Person[]>(),
+    supabase.from('profiles').select('id, full_name'),
+    supabase.from('sales_executives').select('id, name'),
+    supabase.from('activities').select('person_id, status'),
+    supabase.from('orders').select('person_id, total'),
+  ]);
 
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+  const salesExecutiveNameById = new Map((salesExecutives ?? []).map((p) => [p.id, p.name]));
 
   const openTasks = new Map<string, number>();
   const totalActs = new Map<string, number>();
@@ -67,6 +75,7 @@ export async function GET() {
     'Source',
     'Source detail',
     'Owner',
+    'Sales executive',
     'Stage',
     'Open tasks',
     'Total activities',
@@ -85,6 +94,9 @@ export async function GET() {
         SOURCE_LABEL[p.source],
         p.source_detail,
         p.owner_id ? nameById.get(p.owner_id) ?? 'Unknown' : 'Unassigned',
+        p.sales_executive_id
+          ? salesExecutiveNameById.get(p.sales_executive_id) ?? 'Unknown'
+          : 'Unassigned',
         STAGE_META[p.stage].label,
         openTasks.get(p.id) ?? 0,
         totalActs.get(p.id) ?? 0,

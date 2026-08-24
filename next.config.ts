@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['192.168.70.155', '192.168.33.74'],
   experimental: {
     // Don't reuse cached RSC for dynamic pages on client navigation — the
     // funnel report must refetch whenever the date range changes.
