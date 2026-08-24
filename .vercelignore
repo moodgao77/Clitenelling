@@ -1,3 +1,6 @@
 .claude/
+.claude/**
 docs/manual/
+docs/manual/**
 supabase/.temp/
+supabase/.temp/**
