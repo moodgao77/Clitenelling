@@ -84,6 +84,10 @@ export default async function PeoplePage({
 
     if (cleaned) {
       query = query.or(`full_name.ilike.%${cleaned}%,phone_e164.ilike.%${cleaned}%`);
+    } else {
+      // Closed leads stay out of the working list, but remain findable by
+      // search so one who gets back in touch can be reopened.
+      query = query.is('closed_at', null);
     }
 
     const { data } = await query;

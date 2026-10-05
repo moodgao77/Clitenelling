@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { dubaiDayBounds, dueTime, overdueDays } from '@/lib/day';
+import { latestPerClient, noteWrittenAt } from '@/lib/notes';
 import { completeReminder } from './home-actions';
 import StageBadge from '@/components/StageBadge';
 import type { Stage } from '@/lib/types';
@@ -14,6 +15,24 @@ type Reminder = {
   due_at: string;
   people: Client | null;
 };
+type Touch = {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  completed_at: string | null;
+  people: (Client & { closed_at: string | null }) | null;
+};
+
+/** When a client was last worked, in Dubai time. */
+const touchedAt = (iso: string) =>
+  new Date(iso).toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Dubai',
+  });
 
 const TYPE_LABEL: Record<string, string> = {
   appointment: 'Appointment',
@@ -40,11 +59,34 @@ export default async function TodayPage() {
   const overdue = reminders.filter((r) => r.due_at < startISO);
   const today = reminders.filter((r) => r.due_at >= startISO);
 
+  // What the team is actually working right now. Driven by the activity trail
+  // rather than people.updated_at, which a sync can bump without anyone
+  // touching the client.
+  const { data: touches } = await supabase
+    .from('activities')
+    .select(
+      'id, title, body, created_at, completed_at, people:person_id (id, full_name, phone_e164, stage, closed_at)',
+    )
+    .order('created_at', { ascending: false })
+    .limit(80)
+    .returns<Touch[]>();
+
+  const active = latestPerClient(
+    (touches ?? []).filter((t) => t.people && !t.people.closed_at),
+    6,
+  ).map((t) => ({
+    key: t.id,
+    text: t.body.trim() || t.title,
+    at: noteWrittenAt(t),
+    client: t.people as Client,
+  }));
+
   // Prospecting pool — warm leads to work when the queue is clear.
   const { data: pool } = await supabase
     .from('people')
     .select('id, full_name, phone_e164, stage')
     .eq('stage', 'uncontacted')
+    .is('closed_at', null)
     .order('updated_at', { ascending: false })
     .limit(8)
     .returns<Client[]>();
@@ -85,6 +127,42 @@ export default async function TodayPage() {
           <ul className="flex flex-col gap-2.5">
             {today.map((r) => (
               <ReminderCard key={r.id} r={r} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-8">
+        <div className="mb-2.5 flex items-baseline justify-between">
+          <p className="eyebrow">Active conversations</p>
+          <Link href="/people" className="text-xs text-muted hover:underline">
+            See all
+          </Link>
+        </div>
+        {active.length === 0 ? (
+          <p className="text-sm text-muted">
+            No conversations yet. Reach out to a lead below to start one.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2.5">
+            {active.map((a) => (
+              <li key={a.key}>
+                <Link
+                  href={`/people/${a.client.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-semibold text-ink" dir="auto">
+                      {a.client.full_name || 'Unnamed'}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm text-muted" dir="auto">
+                      {a.text}
+                    </p>
+                    <p className="mt-1 text-xs text-gold">{touchedAt(a.at)}</p>
+                  </div>
+                  <StageBadge stage={a.client.stage} />
+                </Link>
+              </li>
             ))}
           </ul>
         )}

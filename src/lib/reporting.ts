@@ -193,3 +193,78 @@ export function stepConversion(counts: FunnelCounts, index: number): number | nu
   if (!prev) return null;
   return Math.round((cur / prev) * 100);
 }
+
+export type FollowUpRow = { completed_at: string | null; person_id: string };
+export type FollowUpDay = { date: string; label: string; touches: number; clients: number };
+
+/** The Dubai calendar date ('YYYY-MM-DD') an instant falls on. */
+export function dubaiDateOf(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + DUBAI_OFFSET_MS);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    d.getUTCDate(),
+  ).padStart(2, '0')}`;
+}
+
+const dayLabel = (iso: string) =>
+  new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+
+/**
+ * Follow-ups actioned per day. Deliberately separate from the funnel: the
+ * funnel counts people converting, so a client can only be "Spoke to" once and
+ * conversion rates stay meaningful. This counts work done, so three calls to
+ * the same client is three. Empty days are included so gaps are visible.
+ */
+export function aggregateFollowUpsByDay(
+  rows: FollowUpRow[],
+  fromDate: string,
+  toDate: string,
+): FollowUpDay[] {
+  let from = fromDate;
+  let to = toDate;
+  if (from > to) [from, to] = [to, from];
+
+  const byDate = new Map<string, { touches: number; clients: Set<string> }>();
+  for (const row of rows) {
+    if (!row.completed_at) continue;
+    const date = dubaiDateOf(row.completed_at);
+    const bucket = byDate.get(date) ?? { touches: 0, clients: new Set<string>() };
+    bucket.touches += 1;
+    bucket.clients.add(row.person_id);
+    byDate.set(date, bucket);
+  }
+
+  const days: FollowUpDay[] = [];
+  for (let date = from; date <= to; date = addDaysISO(date, 1)) {
+    const bucket = byDate.get(date);
+    days.push({
+      date,
+      label: dayLabel(date),
+      touches: bucket?.touches ?? 0,
+      clients: bucket?.clients.size ?? 0,
+    });
+  }
+  return days;
+}
+
+/** Every client touch completed in the window — notes, WhatsApp taps, follow-ups. */
+export async function computeFollowUps(fromDate: string, toDate: string) {
+  const supabase = await createServerSupabase();
+  const { startISO, endISO } = rangeBounds(fromDate, toDate);
+
+  const { data } = await supabase
+    .from('activities')
+    .select('completed_at, person_id')
+    .eq('status', 'done')
+    .not('completed_at', 'is', null)
+    .gte('completed_at', startISO)
+    .lt('completed_at', endISO)
+    .returns<FollowUpRow[]>();
+
+  const days = aggregateFollowUpsByDay(data ?? [], fromDate, toDate);
+  return { days, total: days.reduce((n, d) => n + d.touches, 0) };
+}

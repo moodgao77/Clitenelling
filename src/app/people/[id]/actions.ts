@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { getSessionProfile } from '@/lib/auth';
 import { STAGES, type Stage, type ActivityType } from '@/lib/types';
+import { CLOSE_OUTCOME } from '@/lib/notes';
 
 async function client() {
   const supabase = await createServerSupabase();
@@ -84,10 +85,103 @@ export async function assignSalesExecutive(personId: string, salesExecutiveId: s
   refresh(personId);
 }
 
+/** Standing preferences — sizes, colours, occasions. Current state, so it overwrites. */
 export async function saveNotes(personId: string, notes: string) {
   const { supabase } = await client();
   await supabase.from('people').update({ notes }).eq('id', personId);
   await completeDueFollowUps(supabase, personId);
+  refresh(personId);
+}
+
+/** A note proves contact was made. Conditional so it never downgrades a
+ *  client already further along the funnel. */
+async function advanceFromUncontacted(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  personId: string,
+) {
+  await supabase
+    .from('people')
+    .update({ stage: 'contacted' })
+    .eq('id', personId)
+    .eq('stage', 'uncontacted');
+}
+
+/** Close a lead out, and stop it nagging from the Today queue. */
+async function markClosed(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  personId: string,
+  reason: string,
+) {
+  const now = new Date().toISOString();
+  await supabase
+    .from('people')
+    .update({ closed_at: now, closed_reason: reason })
+    .eq('id', personId);
+  // Every pending reminder, not just the overdue ones — a closed lead should
+  // not reappear in anyone's queue tomorrow.
+  await supabase
+    .from('activities')
+    .update({ status: 'done', completed_at: now })
+    .eq('person_id', personId)
+    .eq('status', 'due');
+}
+
+/**
+ * A dated entry in the client's note log, plus what the conversation led to.
+ * Each call appends a new timestamped row, so a note written in October never
+ * overwrites September's — and because it lands in `activities`, it shows up in
+ * the client's history too.
+ *
+ * The optional outcome moves the stage in the same submit. Tapping a stage pill
+ * is a separate chore that gets forgotten, which is why notes were detailed
+ * while the funnel stayed empty; capturing it here catches it while it's fresh.
+ */
+export async function addNote(personId: string, body: string, outcome?: string) {
+  const { supabase, user } = await client();
+  if (!user) return; // Server Actions are reachable outside the UI
+  const text = body.trim();
+  if (!text) return; // never store a blank note
+
+  await supabase.from('activities').insert({
+    person_id: personId,
+    type: 'note',
+    title: 'Note',
+    body: text,
+    status: 'done',
+    completed_at: new Date().toISOString(),
+    created_by: user.id,
+  });
+
+  if (outcome === CLOSE_OUTCOME) {
+    await markClosed(supabase, personId, 'Not interested');
+  } else if (outcome && STAGES.includes(outcome as Stage)) {
+    // The DB trigger timestamps this into stage_history.
+    await supabase.from('people').update({ stage: outcome }).eq('id', personId);
+  } else {
+    await advanceFromUncontacted(supabase, personId);
+  }
+
+  // Writing up a call = working the client → clear their due reminders.
+  await completeDueFollowUps(supabase, personId);
+  refresh(personId);
+}
+
+/** Close a lead out so it stops surfacing in the working lists. */
+export async function closeClient(personId: string, reason: string) {
+  const { supabase, user } = await client();
+  if (!user) return;
+  await markClosed(supabase, personId, reason.trim() || 'Not interested');
+  refresh(personId);
+}
+
+/** Put a closed lead back into play — they got back in touch. */
+export async function reopenClient(personId: string) {
+  const { supabase, user } = await client();
+  if (!user) return;
+  await supabase
+    .from('people')
+    .update({ closed_at: null, closed_reason: '' })
+    .eq('id', personId);
   refresh(personId);
 }
 
@@ -164,6 +258,19 @@ export async function assignToMeAction(formData: FormData) {
 }
 export async function saveNotesAction(formData: FormData) {
   await saveNotes(String(formData.get('personId')), String(formData.get('notes') ?? ''));
+}
+export async function addNoteAction(formData: FormData) {
+  await addNote(
+    String(formData.get('personId')),
+    String(formData.get('note') ?? ''),
+    String(formData.get('outcome') ?? ''),
+  );
+}
+export async function closeClientAction(formData: FormData) {
+  await closeClient(String(formData.get('personId')), String(formData.get('reason') ?? ''));
+}
+export async function reopenClientAction(formData: FormData) {
+  await reopenClient(String(formData.get('personId')));
 }
 export async function addActivityAction(formData: FormData) {
   await addActivity(String(formData.get('personId')), {

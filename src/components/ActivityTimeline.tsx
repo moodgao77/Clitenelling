@@ -1,4 +1,5 @@
 import { completeActivityAction } from '@/app/people/[id]/actions';
+import { isConversationNote } from '@/lib/notes';
 import { type Activity, type StageHistoryRow, STAGE_META } from '@/lib/types';
 
 const when = (iso: string) =>
@@ -41,7 +42,11 @@ export default function ActivityTimeline({
   type Item = { key: string; at: string; node: React.ReactNode };
   const items: Item[] = [];
 
-  for (const a of activities.filter((x) => x.status === 'done' || !x.due_at)) {
+  // Conversation notes have their own dated section above; this is the trail of
+  // everything else — stage moves, WhatsApp taps, follow-ups and appointments.
+  for (const a of activities.filter(
+    (x) => (x.status === 'done' || !x.due_at) && !isConversationNote(x),
+  )) {
     const at = a.completed_at ?? a.created_at;
     items.push({
       key: `a-${a.id}`,

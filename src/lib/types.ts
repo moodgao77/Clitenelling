@@ -59,6 +59,9 @@ export type Person = {
   stage_changed_at: string;
   notes: string;
   shopify_customer_id: string | null;
+  /** Set when the lead is closed out (e.g. not interested). Null = active. */
+  closed_at: string | null;
+  closed_reason: string;
   created_at: string;
   updated_at: string;
 };

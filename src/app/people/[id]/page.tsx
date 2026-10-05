@@ -8,16 +8,34 @@ import OrderHistory from '@/components/OrderHistory';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import AssignOwner from '@/components/AssignOwner';
 import AssignSalesExecutive from '@/components/AssignSalesExecutive';
-import { assignToMeAction, saveNotesAction, addActivityAction } from './actions';
+import NotesLog from '@/components/NotesLog';
+import {
+  assignToMeAction,
+  saveNotesAction,
+  addActivityAction,
+  addNoteAction,
+  reopenClientAction,
+} from './actions';
 import { waLink, defaultMessage } from '@/lib/whatsapp';
+import { CLOSE_OUTCOME } from '@/lib/notes';
 import {
   SOURCE_LABEL,
+  STAGES,
+  STAGE_META,
   type Person,
   type Order,
   type Activity,
   type StageHistoryRow,
   type SalesExecutive,
 } from '@/lib/types';
+
+const closedWhen = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Dubai',
+  });
 
 export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -113,6 +131,22 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      {person.closed_at && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line-strong bg-gold-soft p-4">
+          <p className="text-sm text-ink">
+            <span className="font-semibold">Closed</span>
+            {person.closed_reason ? ` — ${person.closed_reason}` : ''} ·{' '}
+            {closedWhen(person.closed_at)}
+          </p>
+          <form action={reopenClientAction}>
+            <input type="hidden" name="personId" value={person.id} />
+            <button className="rounded-lg border border-accent px-3 py-1.5 text-xs font-semibold text-heading">
+              Reopen
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="mb-7">
         <WhatsAppButton
           href={waLink(person.phone_e164, defaultMessage(person.full_name))}
@@ -124,7 +158,43 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         <StageStepper personId={person.id} current={person.stage} />
       </Section>
 
-      <Section title="Preferences & notes">
+      <Section title="Notes">
+        <form action={addNoteAction} className="mb-4 flex flex-col gap-2">
+          <input type="hidden" name="personId" value={person.id} />
+          <textarea
+            name="note"
+            rows={3}
+            dir="auto"
+            required
+            placeholder="What happened on the call or message?"
+            className="rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-gold"
+          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="flex items-center gap-2 text-sm text-muted">
+              What happened?
+              <select
+                name="outcome"
+                defaultValue=""
+                className="h-10 rounded-lg border border-line bg-surface px-2 text-sm text-ink outline-none focus:border-gold"
+              >
+                <option value="">No change</option>
+                {STAGES.filter((s) => s !== 'uncontacted').map((s) => (
+                  <option key={s} value={s}>
+                    {STAGE_META[s].label}
+                  </option>
+                ))}
+                <option value={CLOSE_OUTCOME}>Not interested — close</option>
+              </select>
+            </label>
+            <button className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-fg">
+              Save note
+            </button>
+          </div>
+        </form>
+        <NotesLog activities={(activities ?? []) as Activity[]} />
+      </Section>
+
+      <Section title="Preferences">
         <form action={saveNotesAction} className="flex flex-col gap-2">
           <input type="hidden" name="personId" value={person.id} />
           <textarea
@@ -136,7 +206,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             className="rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-gold"
           />
           <button className="self-end rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-fg">
-            Save notes
+            Save preferences
           </button>
         </form>
       </Section>

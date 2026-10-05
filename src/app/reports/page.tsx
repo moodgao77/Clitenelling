@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { getSessionProfile } from '@/lib/auth';
 import {
   computeFunnel,
+  computeFollowUps,
   todayDubaiISO,
   startOfMonthDubaiISO,
   addDaysISO,
   type FunnelCounts,
 } from '@/lib/reporting';
 import Funnel from '@/components/Funnel';
+import FollowUpDays from '@/components/FollowUpDays';
 import Lotus from '@/components/Lotus';
 import ReportFilters from '@/components/ReportFilters';
 
@@ -50,7 +52,10 @@ export default async function ReportsPage({
   let from = isDate(sp.from) && sp.from! <= today ? sp.from! : startOfMonthDubaiISO();
   if (from > to) [from, to] = [to, from];
 
-  const { team, associates, label } = await computeFunnel(from, to);
+  const [{ team, associates, label }, followUps] = await Promise.all([
+    computeFunnel(from, to),
+    computeFollowUps(from, to),
+  ]);
 
   const presets = [
     { label: 'Today', from: today, to: today },
@@ -94,6 +99,21 @@ export default async function ReportsPage({
           </span>
         </div>
         <Funnel counts={team} hrefForStage={(stage) => drilldownHref(stage, from, to)} />
+      </section>
+
+      <section className="mb-8 rounded-2xl border border-line bg-surface p-5">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-base font-semibold text-heading">Follow-ups actioned</h2>
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-ink">{followUps.total}</span> in this range
+          </span>
+        </div>
+        <p className="mb-4 text-sm text-muted">
+          Every client touch logged — notes, WhatsApp messages and completed follow-ups. A client
+          worked three times counts three times, which is why this sits apart from the funnel. The
+          smaller number is how many separate clients were reached that day.
+        </p>
+        <FollowUpDays days={followUps.days} />
       </section>
 
       <section>
